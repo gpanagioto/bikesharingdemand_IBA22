@@ -58,12 +58,14 @@ def DataPreprocess(pickup,season_dict):
     
     return pickup
 
-def Lagging(df, minutes):
-    for i,v in enumerate(range(minutes,120+1,minutes)):
-        df['lag(pickups,{})'.format(i+1)] = df['pickups'].shift(i+1)
+def Lagging(df, minutes, weather_columns):
+    df.loc[:,weather_columns] = df.loc[:,weather_columns].shift(int(120/minutes/2))
+
+    for i in range(int((120/minutes/2) +1), int((120/minutes) +1)):
+        df['lag(pickups,{}-{})'.format(i*minutes-minutes,i*minutes)] = df['pickups'].shift(i)
         
     return df
-    
+
 def get_location_interactive(df, mapbox_style="open-street-map"):
     """Return a map with markers for houses based on lat and long.
     
@@ -82,9 +84,9 @@ def get_location_interactive(df, mapbox_style="open-street-map"):
         lon=df['start station longitude'],
         size = 'cluster_labelcount',
         color='cluster_label',
-        color_continuous_scale=["green", 'blue', 'red', 'gold'],
+        #color_continuous_scale=["green", 'blue', 'red', 'gold',''],
         zoom=11.5,
-        range_color=[0, df['cluster_label'].quantile(0.95)], # to negate outliers
+        #range_color=[0, df['cluster_label'].quantile(0.95)], # to negate outliers
         height=700,
         title='Station location',
         opacity=.5,
@@ -93,6 +95,6 @@ def get_location_interactive(df, mapbox_style="open-street-map"):
             'lon': df['start station longitude'].mode()[0]
         })
     fig.update_layout(mapbox_style=mapbox_style)
-    fig.update_layout(margin={"r": 0, "l": 0, "b": 0})
+    #fig.update_layout(margin={"r": 0, "l": 0, "b": 0})
     fig.show()
     pass
