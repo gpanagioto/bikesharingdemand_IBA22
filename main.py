@@ -25,17 +25,20 @@ def FindingCity(row,point):
     
     return revgc.search(coordinates)[0]['city']
 
-def DatetimeInterval(df,freq):
-    df1 = df.set_index('starttime')
-    df1 = pd.get_dummies(df1, columns=['usertype'])
-    df1 = df1.resample(rule=freq, label='left', origin='start_day').sum()
-    pickups = df1.loc[:,['usertype_Customer','usertype_Subscriber']]
-    pickups['pickups'] = pickups.loc[:,['usertype_Customer','usertype_Subscriber']].sum(axis=1)
-    #pickups = pickups['tripduration'].groupby(pd.Grouper(freq=freq, label='left', origin='start_day')).count()    
-    pickups = pd.DataFrame(pickups)
-    #pickups.rename(columns={'tripduration':'pickups'}, inplace=True)
+def ClusterDatetimeInterval(df,freq):
     
-    return pickups
+    df1 = df.set_index('starttime')
+    
+    df1 = pd.get_dummies(df1, columns=['usertype','cluster_label'])
+    df1 = df1.resample(rule=freq, label='left', origin='start_day').sum()
+    pickups = df1.iloc[:,-7:]        
+    pickups['pickups'] = pickups.loc[:,['usertype_Customer','usertype_Subscriber']].sum(axis=1)
+    cluster_pickups = pd.DataFrame(pickups)
+    
+    return cluster_pickups
+    #pickups = pickups['tripduration'].groupby(pd.Grouper(freq=freq, label='left', origin='start_day')).count()    
+    #pickups.rename(columns={'tripduration':'pickups'}, inplace=True)
+
 
 def PreciptypeMap(row):
     if row == 'rain':
