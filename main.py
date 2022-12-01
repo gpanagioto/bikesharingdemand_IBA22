@@ -79,7 +79,7 @@ def Lagging(df, minutes):
     df['hour'] = df.index.hour
     df['minute'] = df.index.minute
 
-    for i in range(int((120/minutes/2) +1), int((120/minutes) +1)):
+    for i in range(int(((120/minutes)/2) +1), int((120/minutes) +1)):
         df['lag(pickups,{}-{})'.format(i*minutes-minutes,i*minutes)] = df['pickups'].shift(i)
     df = df.dropna().drop(['usertype_Customer','usertype_Subscriber'], axis=1)
     return df
@@ -89,9 +89,11 @@ def WeatherLagging(df, minutes, weather_columns):
 
     df.loc[:,weather_columns] = df.loc[:,weather_columns].shift(int(120/minutes/2))
 
-    for i in range(int((120/minutes/2) +1), int((120/minutes) +1)):
+    for i in range(int(((120/minutes)/2) +1), int((120/minutes) +1)):
         df['lag(pickups,{}-{})'.format(i*minutes-minutes,i*minutes)] = df['pickups'].shift(i)
     
+    df = df.dropna(axis=0, how='any')
+
     return df
 
 def get_location_interactive(df, mapbox_style="open-street-map"):
@@ -150,7 +152,7 @@ class PredictionPipeline():
     
     def BackTestingPrediction(self, model, model_name, X_train, X_test, y_train, y_test):
     
-        #print('\n',model_name)
+        print('\n',model_name)
         CV = []
         CV_score = []
         CV_MSE = []
@@ -165,19 +167,21 @@ class PredictionPipeline():
             train_temp_preds = model.predict(xtemp_train)
             test_temp_preds = model.predict(xtemp_test)
     
-            #print('\nCV Train Score: ',  model.score(xtemp_train, ytemp_train))
-            #print('CV Train RMSE : ',  np.sqrt(mean_squared_error(ytemp_train, train_temp_preds)))
-            #print('CV Score:    ',  model.score(xtemp_test, ytemp_test))
-            #print('CV MSE :    ',  np.sqrt(mean_squared_error(ytemp_test, test_temp_preds)))
+            print('\nCV Train Score: ',  model.score(xtemp_train, ytemp_train))
+            print('CV Train RMSE : ',  np.sqrt(mean_squared_error(ytemp_train, train_temp_preds)))
+            print('CV Score:    ',  model.score(xtemp_test, ytemp_test))
+            print('CV MSE :    ',  np.sqrt(mean_squared_error(ytemp_test, test_temp_preds)))
         
             CV_score.append(model.score(xtemp_test, ytemp_test))
             CV_MSE.append(np.sqrt(mean_squared_error(ytemp_test, test_temp_preds)))
+        
     
         model.fit(X_train, y_train['pickups'])          
     
-        #print('\nTrain Score: ',  model.score(X_train, y_train['pickups']))
-        #print('Train RMSE : ',  np.sqrt(mean_squared_error(y_train['pickups'], model.predict(X_train))))
-        #print('Test Score: ', model.score(X_test, y_test['pickups']))
-        #print('Test MSE :   ', np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))))
-    
-        return CV_score, CV_MSE, model.score(X_test, y_test['pickups']), np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))) 
+        print('\nTrain Score: ',  model.score(X_train, y_train['pickups']))
+        print('Train RMSE : ',  np.sqrt(mean_squared_error(y_train['pickups'], model.predict(X_train))))
+        print('Test Score: ', model.score(X_test, y_test['pickups']))
+        print('Test MSE :   ', np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))))
+
+
+        return CV_score, CV_MSE, model.score(X_test, y_test['pickups']), np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test)))
