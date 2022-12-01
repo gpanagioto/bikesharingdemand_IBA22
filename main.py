@@ -1,7 +1,21 @@
 import reverse_geocode as revgc
 import plotly.express as px
-import pandas as pd
 import holidays
+import pandas as pd
+import main as main
+import numpy as np
+import holidays
+import seaborn as sns
+from collections import Counter
+import matplotlib.pyplot as plt
+from tabulate import tabulate
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+#from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.metrics import r2_score, mean_squared_error, mean_squared_log_error
 
 def FindingCity(row,point):
     if point.lower() == 'start':
@@ -58,12 +72,26 @@ def DataPreprocess(pickup,season_dict):
     
     return pickup
 
-def Lagging(df, minutes, weather_columns):
+
+def Lagging(df, minutes):
+    
+    df['month'] = df.index.month
+    df['hour'] = df.index.hour
+    df['minute'] = df.index.minute
+
+    for i in range(int((120/minutes/2) +1), int((120/minutes) +1)):
+        df['lag(pickups,{}-{})'.format(i*minutes-minutes,i*minutes)] = df['pickups'].shift(i)
+    df = df.dropna().drop(['usertype_Customer','usertype_Subscriber'], axis=1)
+    return df
+
+
+def WeatherLagging(df, minutes, weather_columns):
+
     df.loc[:,weather_columns] = df.loc[:,weather_columns].shift(int(120/minutes/2))
 
     for i in range(int((120/minutes/2) +1), int((120/minutes) +1)):
         df['lag(pickups,{}-{})'.format(i*minutes-minutes,i*minutes)] = df['pickups'].shift(i)
-        
+    
     return df
 
 def get_location_interactive(df, mapbox_style="open-street-map"):
@@ -98,3 +126,58 @@ def get_location_interactive(df, mapbox_style="open-street-map"):
     #fig.update_layout(margin={"r": 0, "l": 0, "b": 0})
     fig.show()
     pass
+
+class PredictionPipeline():
+    
+    def __init__(self, pickups):
+        self.pickups = pickups
+
+    def PredictionDataPreperation(self):
+    
+        X = self.pickups.drop(['pickups'], axis=1)
+        y = self.pickups[['month','hour','pickups']]
+    
+        scaler = StandardScaler()
+        lag_columns = [c for c in X.columns if c.startswith("lag")]
+        X[lag_columns] = scaler.fit_transform(X[lag_columns])
+    
+        X_train = X[X['month']!=8]
+        X_test = X[X['month']==8]
+        y_train = y[y['month']!=8]
+        y_test = y[y['month']==8]    
+        
+        return X_train, X_test, y_train, y_test
+    
+    def BackTestingPrediction(self, model, model_name, X_train, X_test, y_train, y_test):
+    
+        #print('\n',model_name)
+        CV = []
+        CV_score = []
+        CV_MSE = []
+        for m in  X_train.month.unique()[:-1]:
+            CV.append(m)
+            xtemp_train = X_train[X_train['month'].isin(CV)]
+            ytemp_train = y_train[y_train['month'].isin(CV)]['pickups']
+            xtemp_test = X_train[X_train['month']==m+1]
+            ytemp_test = y_train[y_train['month']==m+1]['pickups']
+    
+            model.fit(xtemp_train, ytemp_train)
+            train_temp_preds = model.predict(xtemp_train)
+            test_temp_preds = model.predict(xtemp_test)
+    
+            #print('\nCV Train Score: ',  model.score(xtemp_train, ytemp_train))
+            #print('CV Train RMSE : ',  np.sqrt(mean_squared_error(ytemp_train, train_temp_preds)))
+            #print('CV Score:    ',  model.score(xtemp_test, ytemp_test))
+            #print('CV MSE :    ',  np.sqrt(mean_squared_error(ytemp_test, test_temp_preds)))
+        
+            CV_score.append(model.score(xtemp_test, ytemp_test))
+            CV_MSE.append(np.sqrt(mean_squared_error(ytemp_test, test_temp_preds)))
+    
+        model.fit(X_train, y_train['pickups'])          
+    
+        #print('\nTrain Score: ',  model.score(X_train, y_train['pickups']))
+        #print('Train RMSE : ',  np.sqrt(mean_squared_error(y_train['pickups'], model.predict(X_train))))
+        #print('Test Score: ', model.score(X_test, y_test['pickups']))
+        #print('Test MSE :   ', np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))))
+    
+        return CV_score, CV_MSE, model.score(X_test, y_test['pickups']), np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))) 
