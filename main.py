@@ -131,8 +131,9 @@ def get_location_interactive(df, mapbox_style="open-street-map"):
 
 class PredictionPipeline():
     
-    def __init__(self, pickups):
+    def __init__(self, pickups, weather_columns):
         self.pickups = pickups
+        self.weather_columns = weather_columns
 
     def PredictionDataPreperation(self):
     
@@ -141,7 +142,11 @@ class PredictionPipeline():
     
         scaler = StandardScaler()
         lag_columns = [c for c in X.columns if c.startswith("lag")]
-        X[lag_columns] = scaler.fit_transform(X[lag_columns])
+
+        if len(self.weather_columns)>0:
+            X[self.weather_columns+lag_columns] = scaler.fit_transform(X[self.weather_columns+lag_columns])
+        else:
+            X[lag_columns] = scaler.fit_transform(X[lag_columns])
     
         X_train = X[X['month']!=8]
         X_test = X[X['month']==8]
@@ -182,6 +187,12 @@ class PredictionPipeline():
         print('Train RMSE : ',  np.sqrt(mean_squared_error(y_train['pickups'], model.predict(X_train))))
         print('Test Score: ', model.score(X_test, y_test['pickups']))
         print('Test MSE :   ', np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))))
+        try:
+            for feature, impostance in zip(X_train.columns,model.feature_importances_):
+                print('\n{} : {:0.4f}'.format(feature,impostance))
+        except:
+            for feature, impostance in zip(X_train.columns,model.coef_):
+                print('\n{} : {:0.4f}'.format(feature,impostance))
 
 
         return CV_score, CV_MSE, model.score(X_test, y_test['pickups']), np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test)))
