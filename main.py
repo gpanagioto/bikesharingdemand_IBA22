@@ -25,13 +25,19 @@ def FindingCity(row,point):
     
     return revgc.search(coordinates)[0]['city']
 
-def ClusterDatetimeInterval(df,freq):
+def DatetimeInterval(df,freq):
     
     df1 = df.set_index('starttime')
+    try:
+        df1 = pd.get_dummies(df1, columns=['usertype','cluster_label'])
+        df1 = df1.resample(rule=freq, label='left', origin='start_day').sum()
+        pickups = df1.iloc[:,-7:]             
+    except KeyError:
+        #print(KeyError)
+        df1 = pd.get_dummies(df1, columns=['usertype'])
+        df1 = df1.resample(rule=freq, label='left', origin='start_day').sum()
+        pickups = df1.iloc[:,-2:]        
     
-    df1 = pd.get_dummies(df1, columns=['usertype','cluster_label'])
-    df1 = df1.resample(rule=freq, label='left', origin='start_day').sum()
-    pickups = df1.iloc[:,-7:]        
     pickups['pickups'] = pickups.loc[:,['usertype_Customer','usertype_Subscriber']].sum(axis=1)
     cluster_pickups = pd.DataFrame(pickups)
     
@@ -190,6 +196,7 @@ class PredictionPipeline():
         print('Train RMSE : ',  np.sqrt(mean_squared_error(y_train['pickups'], model.predict(X_train))))
         print('Test Score: ', model.score(X_test, y_test['pickups']))
         print('Test MSE :   ', np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))))
+
         try:
             for feature, impostance in zip(X_train.columns,model.feature_importances_):
                 print('\n{} : {:0.4f}'.format(feature,impostance))
