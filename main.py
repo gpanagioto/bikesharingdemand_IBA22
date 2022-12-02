@@ -56,7 +56,7 @@ def PreciptypeMap(row):
     elif row in ['freezingrain','snow,ice']:
         return 5
     else:
-        return 0
+        return 1
 
 def ConditionsMap(row):
     if row in ['Overcast','Partially cloudy','Clear']:
@@ -180,11 +180,10 @@ class PredictionPipeline():
             model.fit(xtemp_train, ytemp_train)
             train_temp_preds = model.predict(xtemp_train)
             test_temp_preds = model.predict(xtemp_test)
-    
-            print('\nCV Train Score: ',  model.score(xtemp_train, ytemp_train))
-            print('CV Train RMSE : ',  np.sqrt(mean_squared_error(ytemp_train, train_temp_preds)))
-            print('CV Score:    ',  model.score(xtemp_test, ytemp_test))
-            print('CV MSE :    ',  np.sqrt(mean_squared_error(ytemp_test, test_temp_preds)))
+            print('\n Train Score: ',  model.score(xtemp_train, ytemp_train))
+            print(' Train RMSE : ',  np.sqrt(mean_squared_error(ytemp_train, train_temp_preds)))
+            print(' Test Score:    ',  model.score(xtemp_test, ytemp_test))
+            print(' Test RMSE :    ',  np.sqrt(mean_squared_error(ytemp_test, test_temp_preds)))
         
             CV_score.append(model.score(xtemp_test, ytemp_test))
             CV_MSE.append(np.sqrt(mean_squared_error(ytemp_test, test_temp_preds)))
@@ -192,17 +191,19 @@ class PredictionPipeline():
     
         model.fit(X_train, y_train['pickups'])          
     
-        print('\nTrain Score: ',  model.score(X_train, y_train['pickups']))
-        print('Train RMSE : ',  np.sqrt(mean_squared_error(y_train['pickups'], model.predict(X_train))))
-        print('Test Score: ', model.score(X_test, y_test['pickups']))
-        print('Test MSE :   ', np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))))
+        #print('\nTrain Score: ',  model.score(X_train, y_train['pickups']))
+        #print('Train RMSE : ',  np.sqrt(mean_squared_error(y_train['pickups'], model.predict(X_train))))
+        #print('Test Score: ', model.score(X_test, y_test['pickups']))
+        #print('Test RMSE :   ', np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))))
 
         try:
-            for feature, impostance in zip(X_train.columns,model.feature_importances_):
-                print('\n{} : {:0.4f}'.format(feature,impostance))
+            fimpot = [(feature,importance) for (feature,importance) in zip(X_train.columns,model.feature_importances_)]
+            #for feature, impostance in zip(X_train.columns,model.feature_importances_):
+                #print('\n{} : {:0.4f}'.format(feature,impostance))
         except:
-            for feature, impostance in zip(X_train.columns,model.coef_):
-                print('\n{} : {:0.4f}'.format(feature,impostance))
+            fimpot = [(feature,importance) for (feature,importance) in zip(X_train.columns,model.coef_)]
+            #for feature, impostance in zip(X_train.columns,model.coef_):
+                #print('\n{} : {:0.4f}'.format(feature,impostance))
 
 
-        return CV_score, CV_MSE, model.score(X_test, y_test['pickups']), np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test)))
+        return CV_score, CV_MSE, model.score(X_test, y_test['pickups']), np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))), fimpot
