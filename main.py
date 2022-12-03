@@ -94,7 +94,7 @@ def Lagging(df, minutes):
     return df
 
 
-def WeatherLagging(df, minutes, weather_columns):
+def WeatherLaging(df, minutes, weather_columns):
 
     df.loc[:,weather_columns] = df.loc[:,weather_columns].shift(int(120/minutes/2))
 
@@ -125,7 +125,7 @@ def get_location_interactive(df, mapbox_style="open-street-map"):
         color='cluster_label',
         #color_continuous_scale=["green", 'blue', 'red', 'gold',''],
         zoom=11.5,
-        #range_color=[0, df['cluster_label'].quantile(0.95)], # to negate outliers
+        range_color=[0, df['cluster_label'].quantile(0.95)], # to negate outliers
         height=700,
         title='Station location',
         opacity=.5,
@@ -140,10 +140,11 @@ def get_location_interactive(df, mapbox_style="open-street-map"):
 
 class PredictionPipeline():
     
-    def __init__(self, pickups, weather_columns):
+    def __init__(self, pickups, weather_columns, target):
         self.pickups = pickups
         self.weather_columns = weather_columns
-
+        self.target = target
+        
     def PredictionDataPreperation(self):
     
         X = self.pickups.drop(['pickups'], axis=1)
@@ -206,4 +207,4 @@ class PredictionPipeline():
                 #print('\n{} : {:0.4f}'.format(feature,impostance))
 
 
-        return CV_score, CV_MSE, model.score(X_test, y_test['pickups']), np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))), fimpot
+        return CV_score, CV_MSE, model.score(X_test, y_test['pickups']), np.sqrt(mean_squared_error(y_test['pickups'], model.predict(X_test))), fimpot, model.predict(X_test)
