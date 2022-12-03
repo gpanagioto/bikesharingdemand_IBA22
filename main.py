@@ -140,10 +140,9 @@ def get_location_interactive(df, mapbox_style="open-street-map"):
 
 class PredictionPipeline():
     
-    def __init__(self, pickups, weather_columns, target):
+    def __init__(self, pickups, weather_columns):
         self.pickups = pickups
         self.weather_columns = weather_columns
-        self.target = target
         
     def PredictionDataPreperation(self):
     
